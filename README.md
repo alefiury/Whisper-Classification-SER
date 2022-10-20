@@ -1,1 +1,1 @@
-# whisper-classification-ser
+# Whisper Embeddings for Speech Emotion Recognition (SER)

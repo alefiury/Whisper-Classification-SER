@@ -1,0 +1,50 @@
+trainer:
+    accelerator: "gpu"
+    max_epochs: 120
+    overfit_batches: 0.0
+    log_every_n_steps: 1
+    num_sanity_val_steps: 0
+
+data:
+    target_sampling_rate: 16000
+    base_dir_data:
+    train_metadata_path:
+    val_metadata_path:
+    test_metadata_path:
+    filename_column:
+
+    use_preloaded_data: true
+    train_preloaded_path: "../data/ravdess_preloaded_whisper_actor/train"
+    val_preloaded_path: "../data/ravdess_preloaded_whisper_actor/val"
+    test_preloaded_path: "../data/ravdess_preloaded_whisper_actor/test"
+    label_column: "label"
+    embedding_column: "embedding"
+
+model:
+    input_size: 512
+    output_size: 8
+
+training:
+    lr: 1e-3
+    scheduler_patience: 100
+    batch_size: 16
+    num_workers: 10
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val_loss"
+    dirpath: "./checkpoints/whisper_classification_actor_2"
+
+early_stopping:
+    verbose: true
+    monitor: "val_loss"
+    patience: 25
+
+whisper:
+    whisper_version: "openai/whisper-base"
+
+logger:
+    project_name: "whisper_classification_concept_test"
+    debug: false
