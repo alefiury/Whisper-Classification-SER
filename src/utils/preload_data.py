@@ -35,7 +35,10 @@ def audio_file_to_array(
         outputs = whiper_encoder(**inputs)
 
     # Saves the 2D representation, shape: (1500, 512)
-    z = outputs.last_hidden_state.squeeze()
+    # z = outputs.last_hidden_state.squeeze()
+
+    # Saves the pooled representation, shape: (512)
+    z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
 
     batch["embedding"] = z
 

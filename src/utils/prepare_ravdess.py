@@ -128,7 +128,7 @@ def split_dataset_actors(df: pd.DataFrame):
 
 def main():
     ravdess_df = create_metadata_ravdess(
-        ravdess_base_dir="../ravdess/audio_speech_actors_01-24"
+        ravdess_base_dir="../../ravdess/audio_speech_actors_01-24"
     )
 
     X_train, X_val, X_test = split_dataset_actors(df=ravdess_df)
@@ -143,7 +143,7 @@ def main():
         X_val=X_val,
         X_test=X_test,
         target_sampling_rate=16000,
-        base_dir_output="../ravdess_preloaded_whisper",
+        base_dir_output="../../ravdess_preloaded_whisper",
         whiper_encoder=model,
         processor=processor,
         filename_column="wav_file",
