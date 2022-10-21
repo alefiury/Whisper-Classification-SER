@@ -32,9 +32,10 @@ def audio_file_to_array(
     inputs = processor(waveform, sampling_rate=target_sampling_rate, return_tensors="pt")
 
     with torch.no_grad():
-        outputs = whiper_encoder(**inputs, output_hidden_states=True, output_attentions=True)
+        outputs = whiper_encoder(**inputs)
 
-    z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
+    # Saves the 2D representation, shape: (1500, 512)
+    z = outputs.last_hidden_state.squeeze()
 
     batch["embedding"] = z
 

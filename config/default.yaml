@@ -14,9 +14,9 @@ data:
     filename_column:
 
     use_preloaded_data: true
-    train_preloaded_path: "../data/ravdess_preloaded_whisper_actor/train"
-    val_preloaded_path: "../data/ravdess_preloaded_whisper_actor/val"
-    test_preloaded_path: "../data/ravdess_preloaded_whisper_actor/test"
+    train_preloaded_path: "../ravdess_preloaded_whisper_actor/train"
+    val_preloaded_path: "../ravdess_preloaded_whisper_actor/val"
+    test_preloaded_path: "../ravdess_preloaded_whisper_actor/test"
     label_column: "label"
     embedding_column: "embedding"
 
@@ -35,7 +35,7 @@ model_checkpoint:
     save_last: true
     save_weights_only: true
     monitor: "val_loss"
-    dirpath: "./checkpoints/whisper_classification_actor_2"
+    dirpath: "./checkpoints/whisper_classification_actor"
 
 early_stopping:
     verbose: true
@@ -46,5 +46,5 @@ whisper:
     whisper_version: "openai/whisper-base"
 
 logger:
-    project_name: "whisper_classification_concept_test"
+    project_name: "whisper_classification_concept"
     debug: false
