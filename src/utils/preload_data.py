@@ -36,14 +36,12 @@ def audio_to_embeddings(
         outputs = encoder(**inputs)
 
     if mean_pooled:
-        # Saves the pooled representation, shape: (512)
+        # Saves the pooled representation, whisper shape: (512), wav2vec2 (xls-r 300m) shape: (1024)
         z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
 
     else:
-        # Saves the 2D representation, shape: (1500, 512)
+        # Saves the 2D representation, whisper shape: (1500, 512), wav2vec2 (xls-r 300m) shape: (t, 1024)
         z = outputs.last_hidden_state.squeeze()
-
-    print(z.shape)
 
     batch["embedding"] = z
 
