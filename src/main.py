@@ -50,6 +50,7 @@ def main():
 
     if args.train:
         mlp_net = MLPNetWrapper(config)
+        print(mlp_net)
         wandb_logger = WandbLogger(
             project=config.logger.project_name,
             mode="disabled" if config.logger.debug else None
@@ -172,7 +173,7 @@ def main():
             type='torch',
             columns=[config.data.embedding_column, config.data.label_column]
         )
-        test = DataGenDatasets(preloaded_test_dataset)
+        test = DataGeneratorPreLoaded(preloaded_test_dataset)
         test_loader = torch.utils.data.DataLoader(
             test,
             batch_size=config.training.batch_size,

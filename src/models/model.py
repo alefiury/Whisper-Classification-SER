@@ -1,19 +1,33 @@
+from typing import List
+
 from torch import nn
 import torch.nn.functional as F
 
-class MLPNet(nn.Module):
-    def __init__(self, input_size: int, output_size: int):
-        super().__init__()
-        self.tc1 = nn.Linear(input_size, 1024)
-        self.tc2 = nn.Linear(1024, 1024)
-        self.output = nn.Linear(1024, output_size)
 
-        self.dropout1 = nn.Dropout(p=0.2)
-        self.dropout2 = nn.Dropout(p=0.2)
+class MLPNet(nn.Module):
+    def __init__(
+        self,
+        dropout: float,
+        input_size: int,
+        output_size: int,
+        output_dims: List[int]
+    ):
+        super().__init__()
+
+        layers: List[nn.Module] = []
+
+        input_dim = input_size
+        for output_dim in output_dims:
+            layers.append(nn.Linear(input_dim, output_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            input_dim = output_dim
+
+        layers.append(nn.Linear(input_dim, output_size))
+
+        self.layers: nn.Module = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.dropout1(F.relu(self.tc1(x)))
-        x = self.dropout2(F.relu(self.tc2(x)))
-        x = self.output(x)
+        logits = self.layers(x)
 
-        return x
+        return logits

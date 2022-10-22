@@ -5,13 +5,14 @@ import torchaudio
 import pandas as pd
 from datasets import Dataset
 
-def audio_file_to_array(
+def audio_to_embeddings(
     batch,
     target_sampling_rate,
     processor,
-    whiper_encoder,
+    encoder,
     filename_column,
-    base_dir_data
+    base_dir_data,
+    mean_pooled
 ):
     waveform, source_sr = torchaudio.load(
         os.path.join(
@@ -32,13 +33,17 @@ def audio_file_to_array(
     inputs = processor(waveform, sampling_rate=target_sampling_rate, return_tensors="pt")
 
     with torch.no_grad():
-        outputs = whiper_encoder(**inputs)
+        outputs = encoder(**inputs)
 
-    # Saves the 2D representation, shape: (1500, 512)
-    # z = outputs.last_hidden_state.squeeze()
+    if mean_pooled:
+        # Saves the pooled representation, shape: (512)
+        z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
 
-    # Saves the pooled representation, shape: (512)
-    z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
+    else:
+        # Saves the 2D representation, shape: (1500, 512)
+        z = outputs.last_hidden_state.squeeze()
+
+    print(z.shape)
 
     batch["embedding"] = z
 
@@ -51,10 +56,11 @@ def prepare_data(
     X_test: pd.DataFrame,
     target_sampling_rate: int,
     base_dir_output: str,
-    whiper_encoder,
+    encoder,
     processor,
     filename_column: str,
-    base_dir_data: str
+    base_dir_data: str,
+    mean_pooled: bool
 ):
     train_path = os.path.join(base_dir_output, 'train')
     val_path = os.path.join(base_dir_output, 'val')
@@ -71,13 +77,14 @@ def prepare_data(
     print('Loading Audios... ')
 
     train_dataset = train_dataset.map(
-        audio_file_to_array,
+        audio_to_embeddings,
         fn_kwargs={
             "target_sampling_rate": target_sampling_rate,
-            "whiper_encoder": whiper_encoder,
+            "encoder": encoder,
             "processor": processor,
             "filename_column": filename_column,
-            "base_dir_data": base_dir_data
+            "base_dir_data": base_dir_data,
+            "mean_pooled": mean_pooled
         },
         num_proc=1
     )
@@ -85,25 +92,27 @@ def prepare_data(
     print(train_dataset)
 
     val_dataset = val_dataset.map(
-        audio_file_to_array,
+        audio_to_embeddings,
         fn_kwargs={
             "target_sampling_rate": target_sampling_rate,
-            "whiper_encoder": whiper_encoder,
+            "encoder": encoder,
             "processor": processor,
             "filename_column": filename_column,
-            "base_dir_data": base_dir_data
+            "base_dir_data": base_dir_data,
+            "mean_pooled": mean_pooled
         },
         num_proc=1
     )
 
     test_dataset = test_dataset.map(
-        audio_file_to_array,
+        audio_to_embeddings,
         fn_kwargs={
             "target_sampling_rate": target_sampling_rate,
-            "whiper_encoder": whiper_encoder,
+            "encoder": encoder,
             "processor": processor,
             "filename_column": filename_column,
-            "base_dir_data": base_dir_data
+            "base_dir_data": base_dir_data,
+            "mean_pooled": mean_pooled
         },
         num_proc=1
     )
