@@ -130,7 +130,7 @@ def main():
     ravdess_df = create_metadata_ravdess(
         ravdess_base_dir="../../ravdess/audio_speech_actors_01-24"
     )
-    encoder = "whisper"
+    encoder = "wav2vec2"
     use_pooling = True
     base_dir_output = f"../../ravdess_preloaded_{encoder}"
 

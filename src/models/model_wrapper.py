@@ -9,14 +9,24 @@ from torchmetrics import (
     F1Score
 )
 
-from models.model import MLPNet
+from models.models import MLPNet, CNN1DNet
 
 
 class MLPNetWrapper(pl.LightningModule):
-    def __init__(self, config: dict = None):
+    def __init__(
+        self,
+        config: dict = None
+    ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = MLPNet(**config.model)
+
+        if config.training.model_architecture == "mlp":
+            self.model = MLPNet(**config.model)
+        elif config.training.model_architecture == "cnn1d":
+            self.model = CNN1DNet(**config.model)
+        elif config.training.model_architecture == "cnn2d":
+            pass
+
         self.config = config
 
         self.criterion = nn.CrossEntropyLoss()
@@ -80,7 +90,7 @@ class MLPNetWrapper(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.AdamW(
             self.parameters(),
             lr=self.config.training.lr
         )
@@ -89,14 +99,18 @@ class MLPNetWrapper(pl.LightningModule):
             optimizer,
             'min',
             patience=self.config.training.scheduler_patience,
+            min_lr=1.0e-6,
             factor=0.9
         )
+
+        self.trainer.logger.experiment.config["scheduler"] = scheduler.__class__.__name__
+        self.trainer.logger.experiment.config["optimizer"] = optimizer.__class__.__name__
 
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "train_loss",
-                "interval": "step"
+                "monitor": "val_loss",
+                "interval": "epoch"
             }
         }

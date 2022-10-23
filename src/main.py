@@ -15,6 +15,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Learning
 from models.model_wrapper import MLPNetWrapper
 from utils.dataloader import DataGenerator, DataGeneratorPreLoaded
 from utils.evaluate import test_model
+from utils.utils import load_preloaded_data
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -24,7 +25,7 @@ def main():
     parser.add_argument(
         "-c",
         "--config_path",
-        default=os.path.join("../", "config", "default.yaml"),
+        default=os.path.join("../", "config", "default_whisper.yaml"),
         type=str,
         help="YAML file with configurations"
     )
@@ -57,37 +58,35 @@ def main():
         )
 
         if config.data.use_preloaded_data:
-            preloaded_train_dataset = load_from_disk(config.data.train_preloaded_path)
-            preloaded_val_dataset = load_from_disk(config.data.val_preloaded_path)
-            preloaded_test_dataset = load_from_disk(config.data.test_preloaded_path)
-
-            preloaded_train_dataset.set_format(
-                type='torch',
-                columns=[config.data.embedding_column, config.data.label_column]
-            )
-            preloaded_val_dataset.set_format(
-                type='torch',
-                columns=[config.data.embedding_column, config.data.label_column]
-            )
-            preloaded_test_dataset.set_format(
-                type='torch',
-                columns=[config.data.embedding_column, config.data.label_column]
-            )
+            preloaded_train, preloaded_val, preloaded_test = load_preloaded_data(config.data.preloaded_loading.dataset)
+            preloaded_train2, preloaded_val2, preloaded_test2 = load_preloaded_data(config.data.preloaded_loading.dataset2)
 
             train_dataset = DataGeneratorPreLoaded(
-                dataset=preloaded_train_dataset,
-                embedding_column=config.data.embedding_column,
-                label_column=config.data.label_column
+                dataset=preloaded_train,
+                embedding_column=config.data.preloaded_loading.dataset.embedding_column,
+                label_column=config.data.preloaded_loading.dataset.label_column,
+                dataset2=preloaded_train2 if preloaded_train2 else None,
+                file_path_column=config.data.preloaded_loading.dataset2.file_path_column if preloaded_train2 else None,
+                concatanation_type=config.data.preloaded_loading.dataset2.concatanation_type if preloaded_train2 else None,
+                add_gaussian_noise=True
             )
+
             val_dataset = DataGeneratorPreLoaded(
-                dataset=preloaded_val_dataset,
-                embedding_column=config.data.embedding_column,
-                label_column=config.data.label_column
+                dataset=preloaded_val,
+                embedding_column=config.data.preloaded_loading.dataset.embedding_column,
+                label_column=config.data.preloaded_loading.dataset.label_column,
+                dataset2=preloaded_val2 if preloaded_val2 else None,
+                file_path_column=config.data.preloaded_loading.dataset2.file_path_column if preloaded_val2 else None,
+                concatanation_type=config.data.preloaded_loading.dataset2.concatanation_type if preloaded_val2 else None
             )
+
             test_dataset = DataGeneratorPreLoaded(
-                dataset=preloaded_test_dataset,
-                embedding_column=config.data.embedding_column,
-                label_column=config.data.label_column
+                dataset=preloaded_test,
+                embedding_column=config.data.preloaded_loading.dataset.embedding_column,
+                label_column=config.data.preloaded_loading.dataset.label_column,
+                dataset2=preloaded_test2 if preloaded_test2 else None,
+                file_path_column=config.data.preloaded_loading.dataset2.file_path_column if preloaded_test2 else None,
+                concatanation_type=config.data.preloaded_loading.dataset2.concatanation_type if preloaded_test2 else None
             )
 
         else:
