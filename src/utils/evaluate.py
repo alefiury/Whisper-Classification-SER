@@ -27,6 +27,8 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
     mlp_net = MLPNetWrapper(config=config).load_from_checkpoint(checkpoint_path)
     mlp_net.to(device)
 
+    mlp_net.freeze()
+
     pred_list = []
     labels = []
 
@@ -42,6 +44,8 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
 
             pred = torch.argmax(out, axis=1).cpu().detach().numpy()
             label = test_label.cpu().detach().numpy()
+
+            # print(label, pred)
 
             pred_list.extend(pred)
             labels.extend(label)

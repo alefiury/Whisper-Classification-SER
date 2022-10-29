@@ -1,15 +1,16 @@
 import torch
 from torch import nn
 import pytorch_lightning as pl
-from torchmetrics import (
-    MetricCollection,
-    Accuracy,
-    Precision,
-    Recall,
-    F1Score
+
+from torchmetrics import Accuracy, MetricCollection
+
+from torchmetrics.classification import (
+    MulticlassF1Score,
+    MulticlassPrecision,
+    MulticlassRecall
 )
 
-from models.models import MLPNet, CNN1DNet
+from models.models import MLPNet, CNN1DNet, CNN2DNet
 
 
 class MLPNetWrapper(pl.LightningModule):
@@ -25,7 +26,7 @@ class MLPNetWrapper(pl.LightningModule):
         elif config.training.model_architecture == "cnn1d":
             self.model = CNN1DNet(**config.model)
         elif config.training.model_architecture == "cnn2d":
-            pass
+            self.model = CNN2DNet(**config.model)
 
         self.config = config
 
@@ -33,17 +34,14 @@ class MLPNetWrapper(pl.LightningModule):
 
         metric_collection = MetricCollection([
             Accuracy(),
-            Precision(
-                num_classes=config.model.output_size,
-                average='macro'
+            MulticlassPrecision(
+                num_classes=config.model.output_size
             ),
-            Recall(
-                num_classes=config.model.output_size,
-                average='macro'
+            MulticlassRecall(
+                num_classes=config.model.output_size
             ),
-            F1Score(
-                num_classes=config.model.output_size,
-                average='macro'
+            MulticlassF1Score(
+                num_classes=config.model.output_size
             )
         ])
 
@@ -82,6 +80,7 @@ class MLPNetWrapper(pl.LightningModule):
     def test_step(self, test_batch, batch_idx):
         x, y = test_batch
         out = self.model(x)
+        # print(batch_idx, y, torch.argmax(out, axis=1).cpu().detach().numpy())
         test_loss = self.criterion(out, y)
 
         self.log('test_loss', test_loss, on_epoch=True)

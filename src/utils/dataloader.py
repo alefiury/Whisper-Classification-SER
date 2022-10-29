@@ -74,6 +74,8 @@ class DataGeneratorPreLoaded(Dataset):
         else:
             final_embeddings = self.data[self.embedding_column][index].unsqueeze(0)
 
+        # print(final_embeddings.shape, "-"*50)
+
         if self.add_gaussian_noise:
             final_embeddings = self._add_gaussian_noise(signal=final_embeddings, shape=final_embeddings.shape)
 

@@ -8,14 +8,14 @@ import pytorch_lightning as pl
 from omegaconf import OmegaConf
 from datasets import load_from_disk
 from pytorch_lightning.loggers import WandbLogger
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score
 from transformers import WhisperProcessor, WhisperModel
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 
 from models.model_wrapper import MLPNetWrapper
 from utils.dataloader import DataGenerator, DataGeneratorPreLoaded
 from utils.evaluate import test_model
-from utils.utils import load_preloaded_data
+from utils.utils import load_preloaded_data, save_conf_matrix
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -68,7 +68,7 @@ def main():
                 dataset2=preloaded_train2 if preloaded_train2 else None,
                 file_path_column=config.data.preloaded_loading.dataset2.file_path_column if preloaded_train2 else None,
                 concatanation_type=config.data.preloaded_loading.dataset2.concatanation_type if preloaded_train2 else None,
-                add_gaussian_noise=True
+                add_gaussian_noise=False
             )
 
             val_dataset = DataGeneratorPreLoaded(
@@ -165,14 +165,24 @@ def main():
         )
         trainer.fit(mlp_net, train_loader, val_loader)
         trainer.test(mlp_net, dataloaders=test_loader, ckpt_path="best", verbose=True)
+        # trainer.test(mlp_net, dataloaders=test_loader, ckpt_path="last", verbose=True)
 
     elif args.test:
-        preloaded_test_dataset = load_from_disk(config.data.test_preloaded_path)
+        preloaded_test_dataset = load_from_disk(config.data.preloaded_loading.dataset.test_preloaded_path)
+        _, _, preloaded_test2 = load_preloaded_data(config.data.preloaded_loading.dataset2)
         preloaded_test_dataset.set_format(
             type='torch',
-            columns=[config.data.embedding_column, config.data.label_column]
+            columns=[config.data.preloaded_loading.dataset.embedding_column, config.data.preloaded_loading.dataset.label_column]
         )
-        test = DataGeneratorPreLoaded(preloaded_test_dataset)
+
+        test = DataGeneratorPreLoaded(
+                dataset=preloaded_test_dataset,
+                dataset2=preloaded_test2 if preloaded_test2 else None,
+                file_path_column=config.data.preloaded_loading.dataset2.file_path_column if preloaded_test2 else None,
+                concatanation_type=config.data.preloaded_loading.dataset2.concatanation_type if preloaded_test2 else None,
+                embedding_column=config.data.preloaded_loading.dataset.embedding_column,
+                label_column=config.data.preloaded_loading.dataset.label_column
+            )
         test_loader = torch.utils.data.DataLoader(
             test,
             batch_size=config.training.batch_size,
@@ -184,29 +194,34 @@ def main():
         labels, pred_list = test_model(
             test_dataloader=test_loader,
             config=config,
-            checkpoint_path="checkpoints/whisper_classification_actor/epoch=31-step=1920.ckpt"
+            checkpoint_path="../checkpoints/whisper_wav2vec2_classification_actor/epoch=88-step=5340.ckpt"
         )
 
-        # save_conf_matrix(
-        #     targets=labels,
-        #     preds=pred_list,
-        #     classes=[
-        #         "neutral",
-        #         "calm",
-        #         "happy",
-        #         "sad",
-        #         "angry",
-        #         "fearful",
-        #         "disgust",
-        #         "surprised"
-        #     ],
-        #     output_path="whisper_conf.png"
-        # )
+        save_conf_matrix(
+            targets=labels,
+            preds=pred_list,
+            classes=[
+                "neutral",
+                "calm",
+                "happy",
+                "sad",
+                "angry",
+                "fearful",
+                "disgust",
+                "surprised"
+            ],
+            output_path="wav2vec2_conf_cnn1d.png"
+        )
 
         rand_baseline = np.random.randint(8, size=len(labels))
 
         print(accuracy_score(labels, rand_baseline))
         print(f1_score(labels, rand_baseline, average="macro"))
+
+        print(accuracy_score(labels, pred_list))
+        print(f1_score(labels, pred_list, average="macro"))
+        print(recall_score(labels, pred_list, average="macro"))
+        print(precision_score(labels, pred_list, average="macro"))
 
 
 if __name__ == "__main__":

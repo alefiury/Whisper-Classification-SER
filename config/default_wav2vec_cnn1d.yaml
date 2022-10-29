@@ -18,9 +18,9 @@ data:
 
     preloaded_loading:
         dataset:
-            train_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/train"
-            val_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/val"
-            test_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/test"
+            train_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/train"
+            val_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/val"
+            test_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/test"
             label_column: "label"
             embedding_column: "embedding"
 
@@ -35,13 +35,19 @@ data:
             concatanation_type:
 
 model:
-    input_size: 512
+    in_channels: 1
+    mlp_input: 16320 # 1024 - mean, 16320 - flat
     output_size: 8
     dropout: 0.2
-    output_dims: [1024]
+    mlp_output_dims: [1024]
+    conv_layers: [
+        [32, 3, 1],
+        [64, 1, 1]
+    ]
+    global_pooling: "flat"
 
 training:
-    model_architecture: "mlp"
+    model_architecture: "cnn1d"
     lr: 1e-3
     scheduler_patience: 5
     batch_size: 16
@@ -52,7 +58,7 @@ model_checkpoint:
     save_last: true
     save_weights_only: true
     monitor: "val_loss"
-    dirpath: "../checkpoints/whisper_classification_actor"
+    dirpath: "../checkpoints/wav2vec2_classification_cnn1d_actor"
 
 early_stopping:
     verbose: true
@@ -62,5 +68,5 @@ early_stopping:
 encoder_version: "openai/whisper-base"
 
 logger:
-    project_name: "whisper_classification_concept"
+    project_name: "wav2vec2_classification_cnn1d_concept"
     debug: false

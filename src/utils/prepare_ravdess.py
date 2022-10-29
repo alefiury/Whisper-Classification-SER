@@ -32,6 +32,8 @@ def create_metadata_ravdess(ravdess_base_dir: str):
         recursive=True
     )
 
+    print(audio_paths)
+
     genders = []
     emotions = []
     actors = []
@@ -128,11 +130,11 @@ def split_dataset_actors(df: pd.DataFrame):
 
 def main():
     ravdess_df = create_metadata_ravdess(
-        ravdess_base_dir="../../ravdess/audio_speech_actors_01-24"
+        ravdess_base_dir="../../data/audio_speech_actors_01-24"
     )
-    encoder = "wav2vec2"
+    encoder = "whisper"
     use_pooling = True
-    base_dir_output = f"../../ravdess_preloaded_{encoder}"
+    base_dir_output = f"../../data/ravdess_preloaded_{encoder}_pooled"
 
     X_train, X_val, X_test = split_dataset_actors(df=ravdess_df)
 

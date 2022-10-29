@@ -1,6 +1,6 @@
 trainer:
     accelerator: "gpu"
-    max_epochs: 300
+    max_epochs: 200
     overfit_batches: 0.0
     log_every_n_steps: 1
     num_sanity_val_steps: 0
@@ -18,16 +18,16 @@ data:
 
     preloaded_loading:
         dataset:
-            train_preloaded_path: "../../ravdess_preloaded_whisper/train"
-            val_preloaded_path: "../../ravdess_preloaded_whisper/val"
-            test_preloaded_path: "../../ravdess_preloaded_whisper/test"
+            train_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/train"
+            val_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/val"
+            test_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/test"
             label_column: "label"
             embedding_column: "embedding"
 
         dataset2:
-            train_preloaded_path: "../../ravdess_preloaded_wav2vec2/train"
-            val_preloaded_path: "../../ravdess_preloaded_wav2vec2/val"
-            test_preloaded_path: "../../ravdess_preloaded_wav2vec2/test"
+            train_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/train"
+            val_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/val"
+            test_preloaded_path: "../../data/ravdess_preloaded_wav2vec2_pooled/test"
             label_column: "label"
             embedding_column: "embedding"
 
@@ -57,7 +57,7 @@ model_checkpoint:
 early_stopping:
     verbose: true
     monitor: "val_loss"
-    patience: 200
+    patience: 100
 
 encoder_version:
 

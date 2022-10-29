@@ -48,6 +48,7 @@ class CNN1DNet(nn.Module):
     ):
         super().__init__()
 
+
         self.global_pooling = global_pooling
 
         def block(n_in, n_out, k, stride):
@@ -56,7 +57,6 @@ class CNN1DNet(nn.Module):
                 nn.BatchNorm1d(n_out),
                 nn.ReLU(),
                 nn.MaxPool1d(2, 2),
-                # nn.AvgPool2d(2, 2),
                 nn.Dropout(dropout)
         )
 
@@ -75,20 +75,18 @@ class CNN1DNet(nn.Module):
         )
 
     def forward(self, x):
-        print(x.shape)
+        # print(x.shape)
         for conv in self.conv_layers:
             x = conv(x)
 
         if self.global_pooling == "mean":
             x = x.mean(-1)
-        if self.global_pooling == "flat":
+        elif self.global_pooling == "flat":
             x = x.flatten(start_dim=1)
         else:
             print("Pooling is not availabel... exiting...")
             exit()
-
         # print(x.shape)
-
         logits = self.dense_layers(x)
 
         return logits
@@ -133,7 +131,7 @@ class CNN2DNet(nn.Module):
         )
 
     def forward(self, x):
-        print(x.shape)
+        # print(x.shape)
         for conv in self.conv_layers:
             x = conv(x)
 

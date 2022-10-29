@@ -18,9 +18,9 @@ data:
 
     preloaded_loading:
         dataset:
-            train_preloaded_path: "../../ravdess_preloaded_whisper/train"
-            val_preloaded_path: "../../ravdess_preloaded_whisper/val"
-            test_preloaded_path: "../../ravdess_preloaded_whisper/test"
+            train_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/train"
+            val_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/val"
+            test_preloaded_path: "../../data/ravdess_preloaded_whisper_pooled/test"
             label_column: "label"
             embedding_column: "embedding"
 
@@ -36,7 +36,7 @@ data:
 
 model:
     in_channels: 1
-    mlp_input: 8128 # 512 - mean, 7168 - flat
+    mlp_input: 8128 # 64 - mean, 8128 - flat
     output_size: 8
     dropout: 0.2
     mlp_output_dims: [1024]
@@ -50,7 +50,7 @@ training:
     model_architecture: "cnn1d"
     lr: 1e-3
     scheduler_patience: 5
-    batch_size: 16
+    batch_size: 8
     num_workers: 10
 
 model_checkpoint:
