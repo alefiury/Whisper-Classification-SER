@@ -3,7 +3,7 @@ from typing import Any
 import torch
 from tqdm import tqdm
 
-from models.model_wrapper import MLPNetWrapper
+from models.model_wrapper import PlModelWrapper
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -24,7 +24,7 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
         use_amp: True to use Mixed precision and False otherwise.
     """
     print(config)
-    mlp_net = MLPNetWrapper(config=config).load_from_checkpoint(checkpoint_path)
+    mlp_net = PlModelWrapper(config=config).load_from_checkpoint(checkpoint_path)
     mlp_net.to(device)
 
     mlp_net.freeze()

@@ -10,10 +10,15 @@ from torchmetrics.classification import (
     MulticlassRecall
 )
 
-from models.models import MLPNet, CNN1DNet, CNN2DNet
+from models.models import (
+    MLPNetWhisper,
+    CNN1DNetWhisper,
+    CNN2DNetWhisper,
+    WhisperForSpeechClassification
+)
 
 
-class MLPNetWrapper(pl.LightningModule):
+class PlModelWrapper(pl.LightningModule):
     def __init__(
         self,
         config: dict = None
@@ -22,15 +27,20 @@ class MLPNetWrapper(pl.LightningModule):
         self.save_hyperparameters()
 
         if config.training.model_architecture == "mlp":
-            self.model = MLPNet(**config.model)
+            self.model = MLPNetWhisper(**config.model)
         elif config.training.model_architecture == "cnn1d":
-            self.model = CNN1DNet(**config.model)
+            self.model = CNN1DNetWhisper(**config.model)
         elif config.training.model_architecture == "cnn2d":
-            self.model = CNN2DNet(**config.model)
+            self.model = CNN2DNetWhisper(**config.model)
+        elif config.training.model_architecture == "finetune":
+            self.model = WhisperForSpeechClassification(**config.model)
 
         self.config = config
 
-        self.criterion = nn.CrossEntropyLoss()
+        if config.training.loss_func == "ce":
+            self.criterion = nn.CrossEntropyLoss()
+        if config.training.loss_func == "bce":
+            self.criterion = nn.BCEWithLogitsLoss()
 
         metric_collection = MetricCollection([
             Accuracy(),
@@ -56,7 +66,10 @@ class MLPNetWrapper(pl.LightningModule):
         train_loss = self.criterion(out, y)
 
         self.log('train_loss', train_loss)
-        train_metrics = self.train_metrics(out, y)
+        if self.config.training.loss_func == "bce":
+            train_metrics = self.train_metrics(out, torch.argmax(y, axis=1))
+        else:
+            train_metrics = self.train_metrics(out, y)
         self.log_dict(train_metrics, on_step=True, on_epoch=True)
 
         return train_loss
@@ -68,7 +81,10 @@ class MLPNetWrapper(pl.LightningModule):
         val_loss = self.criterion(out, y)
 
         self.log('val_loss', val_loss)
-        val_metrics = self.valid_metrics(out, y)
+        if self.config.training.loss_func == "bce":
+            val_metrics = self.valid_metrics(out, torch.argmax(y, axis=1))
+        else:
+            val_metrics = self.valid_metrics(out, y)
         self.log_dict(val_metrics, on_step=True, on_epoch=True)
 
 
@@ -80,8 +96,10 @@ class MLPNetWrapper(pl.LightningModule):
     def test_step(self, test_batch, batch_idx):
         x, y = test_batch
         out = self.model(x)
-        # print(batch_idx, y, torch.argmax(out, axis=1).cpu().detach().numpy())
-        test_loss = self.criterion(out, y)
+        if self.config.training.loss_func == "bce":
+            print(batch_idx, y, torch.argmax(out, axis=1).cpu().detach().numpy())
+        else:
+            test_loss = self.criterion(out, y)
 
         self.log('test_loss', test_loss, on_epoch=True)
         testing_metrics = self.test_metrics(out, y)

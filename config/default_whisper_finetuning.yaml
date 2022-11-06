@@ -1,0 +1,56 @@
+trainer:
+    accelerator: "gpu"
+    max_epochs: 200
+    overfit_batches: 0.0
+    log_every_n_steps: 1
+    num_sanity_val_steps: 0
+
+data:
+    target_sampling_rate: 16000
+    use_preloaded_data: true
+    base_dir_data: ""
+    train_metadata_path: "../data/ravdess_train_metadata.csv"
+    val_metadata_path: "../data/ravdess_eval_metadata.csv"
+    test_metadata_path: "../data/ravdess_test_metadata.csv"
+    filename_column: "wav_file"
+    label_column: "label"
+
+    use_mixup: false
+    mixup_alpha: 0.2
+
+    use_specaug: true
+    specaug_freqm: 16
+    specaug_timem: 128
+
+model:
+    input_size: 512
+    output_size: 8
+    dropout: 0.2
+    output_dims: [1024]
+    encoder_version: "openai/whisper-base"
+
+training:
+    model_architecture: "finetune"
+    lr: 1e-3
+    scheduler_patience: 5
+    batch_size: 16
+    num_workers: 10
+    loss_func: "ce"
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val_loss"
+    dirpath: "../checkpoints/whisper_classification_ser_finetuning"
+
+early_stopping:
+    verbose: true
+    monitor: "val_loss"
+    patience: 100
+
+encoder_version: "openai/whisper-base"
+
+logger:
+    project_name: "whisper_classification_ser"
+    debug: false

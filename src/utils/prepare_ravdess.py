@@ -32,7 +32,7 @@ def create_metadata_ravdess(ravdess_base_dir: str):
         recursive=True
     )
 
-    print(audio_paths)
+    # print(audio_paths)
 
     genders = []
     emotions = []
@@ -138,31 +138,35 @@ def main():
 
     X_train, X_val, X_test = split_dataset_actors(df=ravdess_df)
 
-    if encoder == "whisper":
-        print("Using Whisper Embeddings... ")
-        processor = AutoFeatureExtractor.from_pretrained("openai/whisper-base")
-        model = WhisperModel.from_pretrained("openai/whisper-base")
-        model = model.encoder
-        model.eval()
+    X_train.to_csv("../data/ravdess_train_metadata.csv", index=False)
+    X_val.to_csv("../data/ravdess_eval_metadata.csv", index=False)
+    X_test.to_csv("../data/ravdess_test_metadata.csv", index=False)
 
-    if encoder == "wav2vec2":
-        print("Using Wav2vec2 Embeddings... ")
-        processor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-xls-r-300m")
-        model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-xls-r-300m")
-        model.eval()
+    # if encoder == "whisper":
+    #     print("Using Whisper Embeddings... ")
+    #     processor = AutoFeatureExtractor.from_pretrained("openai/whisper-base")
+    #     model = WhisperModel.from_pretrained("openai/whisper-base")
+    #     model = model.encoder
+    #     model.eval()
 
-    prepare_data(
-        X_train=X_train,
-        X_val=X_val,
-        X_test=X_test,
-        target_sampling_rate=16000,
-        base_dir_output=base_dir_output,
-        encoder=model,
-        processor=processor,
-        filename_column="wav_file",
-        base_dir_data="",
-        mean_pooled=use_pooling
-    )
+    # if encoder == "wav2vec2":
+    #     print("Using Wav2vec2 Embeddings... ")
+    #     processor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-xls-r-300m")
+    #     model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-xls-r-300m")
+    #     model.eval()
+
+    # prepare_data(
+    #     X_train=X_train,
+    #     X_val=X_val,
+    #     X_test=X_test,
+    #     target_sampling_rate=16000,
+    #     base_dir_output=base_dir_output,
+    #     encoder=model,
+    #     processor=processor,
+    #     filename_column="wav_file",
+    #     base_dir_data="",
+    #     mean_pooled=use_pooling
+    # )
 
 
 if __name__ == "__main__":

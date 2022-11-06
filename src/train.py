@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_sc
 from transformers import WhisperProcessor, WhisperModel
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 
-from models.model_wrapper import MLPNetWrapper
+from models.model_wrapper import PlModelWrapper
 from utils.dataloader import DataGenerator, DataGeneratorPreLoaded
 from utils.evaluate import test_model
 from utils.utils import load_preloaded_data, save_conf_matrix
@@ -43,6 +43,13 @@ def main():
         action="store_true",
         help="Tests model"
     )
+    parser.add_argument(
+        "-m",
+        "--metadata",
+        default=False,
+        action="store_true",
+        help="Tests model"
+    )
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config_path)
@@ -50,7 +57,7 @@ def main():
     pl.seed_everything(42)
 
     if args.train:
-        mlp_net = MLPNetWrapper(config)
+        mlp_net = PlModelWrapper(config)
         print(mlp_net)
         wandb_logger = WandbLogger(
             project=config.logger.project_name,
@@ -90,43 +97,46 @@ def main():
             )
 
         else:
-            X_train = pd.read_csv(config.data.metadata_path)
-            X_val = pd.read_csv(config.data.metadata_path)
-            X_test = pd.read_csv(config.data.metadata_path)
+            X_train = pd.read_csv(config.data.dynamic_loading.train_metadata_path)
+            X_val = pd.read_csv(config.data.dynamic_loading.val_metadata_path)
+            X_test = pd.read_csv(config.data.dynamic_loading.test_metadata_path)
 
-            processor = WhisperProcessor.from_pretrained(config.whisper.whisper_version)
-            model = WhisperModel.from_pretrained(config.whisper.whisper_version)
-
-            model.eval()
+            processor = WhisperProcessor.from_pretrained(config.encoder_version)
+            model = WhisperModel.from_pretrained(config.encoder_version)
+            model.freeze_encoder()
+            model = model.get_encoder()
 
             train_dataset = DataGenerator(
                 df=X_train,
                 target_sampling_rate=config.data.target_sampling_rate,
-                base_wav_path=config.data.base_dir_data,
+                base_wav_path=config.data.dynamic_loading.base_dir_data,
                 processor=processor,
-                whiper_encoder=model.encoder,
-                filename_column=config.data.filename_column,
-                label_column=config.data.label_column
+                encoder=model,
+                filename_column=config.data.dynamic_loading.filename_column,
+                label_column=config.data.dynamic_loading.label_column,
+                use_pooling=False
             )
 
             val_dataset = DataGenerator(
                 df=X_val,
                 target_sampling_rate=config.data.target_sampling_rate,
-                base_wav_path=config.data.base_dir_data,
+                base_wav_path=config.data.dynamic_loading.base_dir_data,
                 processor=processor,
-                whiper_encoder=model.encoder,
-                filename_column=config.data.filename_column,
-                label_column=config.data.label_column
+                encoder=model,
+                filename_column=config.data.dynamic_loading.filename_column,
+                label_column=config.data.dynamic_loading.label_column,
+                use_pooling=False
             )
 
             test_dataset = DataGenerator(
                 df=X_test,
                 target_sampling_rate=config.data.target_sampling_rate,
-                base_wav_path=config.data.base_dir_data,
+                base_wav_path=config.data.dynamic_loading.base_dir_data,
                 processor=processor,
-                whiper_encoder=model.encoder,
-                filename_column=config.data.filename_column,
-                label_column=config.data.label_column
+                encoder=model,
+                filename_column=config.data.dynamic_loading.filename_column,
+                label_column=config.data.dynamic_loading.label_column,
+                use_pooling=False
             )
 
         train_loader = torch.utils.data.DataLoader(
@@ -222,7 +232,6 @@ def main():
         print(f1_score(labels, pred_list, average="macro"))
         print(recall_score(labels, pred_list, average="macro"))
         print(precision_score(labels, pred_list, average="macro"))
-
 
 if __name__ == "__main__":
     # torch.multiprocessing.set_start_method('spawn')
