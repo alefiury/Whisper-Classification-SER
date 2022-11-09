@@ -163,7 +163,8 @@ class DataGeneratorForWhisper(Dataset):
         specaug_freqm: int,
         specaug_timem: int,
         data_type: str,
-        class_num: int
+        class_num: int,
+        use_hot_one_encoding: bool
     ):
         self.data = df
         self.base_wav_path = base_wav_path
@@ -184,6 +185,8 @@ class DataGeneratorForWhisper(Dataset):
         self.class_num = class_num
 
         self.data_type = data_type
+
+        self.use_hot_one_encoding = use_hot_one_encoding
 
 
     def __len__(self):
@@ -216,8 +219,8 @@ class DataGeneratorForWhisper(Dataset):
             # Makes sure that the class from the random audio is different than the main audio
             while datum[self.label_column] == rand_datum[self.label_column]:
                 rand_index = random.randint(0, len(self.data)-1)
-
-            rand_datum = self.data.iloc[rand_index]
+                rand_datum = self.data.iloc[rand_index]
+                # print("-"*5, index)
 
             # Cut audios
             audio_original, sr = self._load_wav(filename=datum[self.filename_column])
@@ -249,6 +252,14 @@ class DataGeneratorForWhisper(Dataset):
             datum = self.data.iloc[index]
             waveform, sr = self._load_wav(filename=datum[self.filename_column])
             label = datum[self.label_column]
+
+            if self.use_hot_one_encoding:
+                # Hot one encoding for mixup
+                temp_label = np.zeros(self.class_num, dtype='f')
+                temp_label[label] = 1
+                label = temp_label
+
+            # print(label, datum[self.label_column])
 
         # Shape: (1, 80, 3000) -> (1, freq, time)
         fbank = self.processor(waveform, sampling_rate=sr, return_tensors="pt")["input_features"]

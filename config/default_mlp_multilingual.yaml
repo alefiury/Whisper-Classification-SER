@@ -8,25 +8,25 @@ trainer:
 data:
     target_sampling_rate: 16000
     use_preloaded_data: true
-    base_dir_data: ""
-    train_metadata_path: "../data/ravdess_train_metadata.csv"
-    val_metadata_path: "../data/ravdess_eval_metadata.csv"
-    test_metadata_path: "../data/ravdess_test_metadata.csv"
+    base_dir_data: "../../data/Multidataset-ser"
+    train_metadata_path: "../../data/Multidataset-ser/metadata/metadata_train.csv"
+    val_metadata_path:
+    test_metadata_path: "../../data/Multidataset-ser/metadata/metadata_test.csv"
     filename_column: "wav_file"
     label_column: "label"
 
-    use_mixup: true
+    use_mixup: false
     mixup_alpha: 0.2
 
     use_specaug: false
     specaug_freqm: 16
     specaug_timem: 128
 
-    use_hot_one_encoding: true
+    use_hot_one_encoding: false
 
 model:
     input_size: 512
-    output_size: 8
+    output_size: 7
     dropout: 0.2
     output_dims: [1024]
     encoder_version: "openai/whisper-base"
@@ -35,16 +35,16 @@ training:
     model_architecture: "mlp"
     lr: 1e-3
     scheduler_patience: 3
-    batch_size: 16
+    batch_size: 100
     num_workers: 10
-    loss_func: "bce"
+    loss_func: "ce"
 
 model_checkpoint:
     mode: "min"
     save_last: true
     save_weights_only: true
     monitor: "val_loss"
-    dirpath: "../checkpoints/whisper_classification_ser_mlp-${data.use_mixup}_mixup-${data.use_specaug}_spec_aug-${trainer.max_epochs}_epochs"
+    dirpath: "../checkpoints/whisper_classification_ser_mlp_multilingual-${data.use_mixup}_mixup-${data.use_specaug}_spec_aug-${trainer.max_epochs}_epochs"
 
 early_stopping:
     verbose: true
@@ -54,5 +54,5 @@ early_stopping:
 encoder_version: "openai/whisper-base"
 
 logger:
-    project_name: "whisper_classification_ser"
+    project_name: "whisper_classification_ser_multilingual"
     debug: false

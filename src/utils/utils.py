@@ -58,3 +58,20 @@ def load_preloaded_data(config):
 
 
     return preloaded_train_dataset, preloaded_val_dataset, preloaded_test_dataset
+
+def convert_labels(X_train, X_val, X_test, label_column):
+    emotion2int = {
+        "neutral": 0,
+        "happy": 1,
+        "sad": 2,
+        "angry": 3,
+        "fear": 4,
+        "disgust": 5,
+        "surprise": 6,
+    }
+
+    X_train = X_train.replace({label_column: emotion2int})
+    X_val = X_val.replace({label_column: emotion2int})
+    X_test = X_test.replace({label_column: emotion2int})
+
+    return X_train, X_val, X_test

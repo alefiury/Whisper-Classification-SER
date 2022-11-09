@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -44,6 +45,9 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
 
             pred = torch.argmax(out, axis=1).cpu().detach().numpy()
             label = test_label.cpu().detach().numpy()
+
+            if config.data.use_hot_one_encoding:
+                label = np.argmax(label, axis=1)
 
             # print(label, pred)
 
