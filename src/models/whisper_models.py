@@ -5,6 +5,7 @@ from torch import nn
 import torch.nn.functional as F
 from transformers import WhisperModel
 
+from models.basic_models import MLPBase
 
 class WhisperForSpeechClassification(nn.Module):
     def __init__(
@@ -54,35 +55,6 @@ class WhisperForSpeechClassification(nn.Module):
         last_hidden_state = outputs.last_hidden_state
         features = self._pooling_strategy(last_hidden_state)
         logits = self.classification_layers(features)
-
-        return logits
-
-
-class MLPBase(nn.Module):
-    def __init__(
-        self,
-        dropout: float,
-        input_size: int,
-        output_size: int,
-        output_dims: List[int]
-    ):
-        super().__init__()
-
-        layers: List[nn.Module] = []
-
-        input_dim = input_size
-        for output_dim in output_dims:
-            layers.append(nn.Linear(input_dim, output_dim))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout))
-            input_dim = output_dim
-
-        layers.append(nn.Linear(input_dim, output_size))
-
-        self.classification_layers: nn.Module = nn.Sequential(*layers)
-
-    def forward(self, x):
-        logits = self.classification_layers(x)
 
         return logits
 

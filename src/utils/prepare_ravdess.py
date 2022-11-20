@@ -130,7 +130,7 @@ def split_dataset_actors(df: pd.DataFrame):
 
 def main():
     ravdess_df = create_metadata_ravdess(
-        ravdess_base_dir="../../data/audio_speech_actors_01-24"
+        ravdess_base_dir="../../data/ravdess"
     )
     encoder = "whisper"
     use_pooling = True
@@ -138,9 +138,9 @@ def main():
 
     X_train, X_val, X_test = split_dataset_actors(df=ravdess_df)
 
-    X_train.to_csv("../data/ravdess_train_metadata.csv", index=False)
-    X_val.to_csv("../data/ravdess_eval_metadata.csv", index=False)
-    X_test.to_csv("../data/ravdess_test_metadata.csv", index=False)
+    X_train.to_csv("../../data/ravdess_train_metadata.csv", index=False)
+    X_val.to_csv("../../data/ravdess_eval_metadata.csv", index=False)
+    X_test.to_csv("../../data/ravdess_test_metadata.csv", index=False)
 
     # if encoder == "whisper":
     #     print("Using Whisper Embeddings... ")

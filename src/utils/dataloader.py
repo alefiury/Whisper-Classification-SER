@@ -15,25 +15,37 @@ class DataGeneratorPreLoaded(Dataset):
     def __init__(
         self,
         label_column: str,
-        embedding_column: str,
-        dataset: Any = None,
-        dataset2: Optional[Any] = None,
-        file_path_column: Optional[str] = None,
-        concatanation_type: Optional[str] = None, # possible values: 'time', 'channel',
-        add_gaussian_noise: bool = False
+        filename_column: str,
+        base_dir: str,
+        dataset: pd.DataFrame,
+        use_mixup: bool,
+        mixup_alpha: float,
+        data_type: str,
+        use_hot_one_encoding: bool,
+        use_add_noise: bool,
+        min_amplitude: float,
+        max_amplitude: float,
+        class_num: int
     ):
         self.data = dataset
-        self.embedding_column = embedding_column
+        self.filename_column = filename_column
         self.label_column = label_column
+        self.base_dir = base_dir
 
-        self.data2 = dataset2
-        self.file_path_column = file_path_column
-        self.concatanation_type = concatanation_type
+        self.use_mixup = use_mixup
+        self.mixup_alpha = mixup_alpha
 
-        self.add_gaussian_noise = add_gaussian_noise
+        self.data_type = data_type
+
+        self.use_hot_one_encoding = use_hot_one_encoding
+        self.class_num = class_num
+
+        self.use_add_noise = use_add_noise
+        self.min_amplitude = min_amplitude
+        self.max_amplitude = max_amplitude
 
     def __len__(self):
-        return self.data.num_rows
+        return len(self.data)
 
 
     def _add_gaussian_noise(
@@ -52,100 +64,51 @@ class DataGeneratorPreLoaded(Dataset):
 
 
     def __getitem__(self, index):
-        label = self.data[self.label_column][index]
+        if self.use_mixup and self.data_type=="train":
+            datum = self.data.iloc[index]
+            # Samples a random audio from the dataset to do mixup
+            rand_index = random.randint(0, len(self.data)-1)
+            rand_datum = self.data.iloc[rand_index]
 
-        if self.data2 is not None:
-            assert self.data[self.file_path_column][index] == self.data2[self.file_path_column][index]
+            # Makes sure that the class from the random audio is different than the main audio
+            while datum[self.label_column] == rand_datum[self.label_column]:
+                rand_index = random.randint(0, len(self.data)-1)
+                rand_datum = self.data.iloc[rand_index]
 
-            if self.concatanation_type == "time":
-                embeddings1 = self.data[self.embedding_column][index]
-                embeddings2 = self.data2[self.embedding_column][index]
+            z = torch.load(os.path.join(self.base_dir, datum[self.filename_column]))
+            z_rand = torch.load(os.path.join(self.base_dir, rand_datum[self.filename_column]))
 
-                final_embeddings = torch.cat((embeddings1, embeddings2), 0).unsqueeze(0)
+            # Sample lambda from a beta distribution based on the value of alpha
+            mix_lambda = torch.tensor(np.random.beta(self.mixup_alpha, self.mixup_alpha))
 
-            elif self.concatanation_type == "channel":
-                embeddings1 = F.pad(self.data[self.embedding_column][index], (0, 512)).unsqueeze(0)
-                embeddings2 = self.data2[self.embedding_column][index].unsqueeze(0)
+            # Mixup
+            features = mix_lambda * z + (1 - mix_lambda) * z_rand
 
-                final_embeddings = torch.cat((embeddings1, embeddings2), 0)
-
-            else:
-                print("Concatenation type is not supported; embeddings from self.data will be returned instead")
+            # Hot one encoding for mixup
+            label = np.zeros(self.class_num, dtype='f')
+            label[datum[self.label_column]] = mix_lambda
+            label[rand_datum[self.label_column]] = 1 - mix_lambda
 
         else:
-            final_embeddings = self.data[self.embedding_column][index].unsqueeze(0)
+            datum = self.data.iloc[index]
+            features = torch.load(os.path.join(self.base_dir, datum[self.filename_column]))
+            label = datum[self.label_column]
 
-        # print(final_embeddings.shape, "-"*50)
+            if self.use_hot_one_encoding:
+                # Hot one encoding for mixup
+                temp_label = np.zeros(self.class_num, dtype='f')
+                temp_label[label] = 1
+                label = temp_label
 
-        if self.add_gaussian_noise:
-            final_embeddings = self._add_gaussian_noise(signal=final_embeddings, shape=final_embeddings.shape)
+        if self.use_add_noise and self.data_type=="train":
+            features = self._add_gaussian_noise(
+                signal=features,
+                min_amplitude=self.min_amplitude,
+                max_amplitude=self.max_amplitude,
+                shape=features.shape
+            )
 
-
-        return final_embeddings, label
-
-
-class DataGenerator(Dataset):
-    def __init__(
-        self,
-        df: pd.DataFrame,
-        encoder: Any,
-        processor: Any,
-        label_column: str,
-        use_pooling: bool,
-        base_wav_path: str,
-        filename_column: str,
-        target_sampling_rate: int
-    ):
-        self.data = df
-        self.base_wav_path = base_wav_path
-        self.target_sampling_rate = target_sampling_rate
-
-        self.processor = processor
-        self.encoder = encoder
-
-        self.filename_column = filename_column
-        self.label_column = label_column
-
-        self.use_pooling = use_pooling
-
-
-    def __len__(self):
-        return len(self.data)
-
-
-    def _load_wav(self, filename: str):
-        waveform, source_sr = torchaudio.load(os.path.join(self.base_wav_path, filename))
-
-        # Convert to mono channel
-        waveform = torch.mean(waveform, dim=0, keepdim=True)
-        # Convert source sampling rate to a target sampling rate
-        if source_sr != self.target_sampling_rate:
-            transform = torchaudio.transforms.Resample(source_sr, self.target_sampling_rate)
-            waveform = transform(waveform)
-
-        waveform = waveform.squeeze(0)
-
-        return waveform, self.target_sampling_rate
-
-
-    def __getitem__(self, index):
-        datum = self.data.iloc[index]
-        waveform, sr = self._load_wav(filename=datum[self.filename_column])
-
-        inputs = self.processor(waveform, sampling_rate=sr, return_tensors="pt")
-        # print(inputs)
-        print(inputs["input_features"].shape)
-        with torch.no_grad():
-            outputs = self.encoder(**inputs)
-
-        if self.use_pooling:
-            z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
-        else:
-            z = outputs.last_hidden_state
-
-        # print(index, z.shape, datum[self.label_column])
-
-        return z, datum[self.label_column]
+        return features, label
 
 
 class DataGeneratorForWhisper(Dataset):

@@ -1,0 +1,61 @@
+trainer:
+    accelerator: "gpu"
+    max_epochs: 300
+    overfit_batches: 0.0
+    log_every_n_steps: 1
+    num_sanity_val_steps: 2
+
+data:
+    target_sampling_rate: 16000
+    use_preloaded_data: true
+    base_dir_data: "../../data/coraa_ser_preloaded/audios"
+    # base_dir_data: "../../data/Multidataset-ser_preloaded"
+    train_metadata_path: "../../data/Multidataset-ser_preloaded/metadata/metadata_train.csv"
+    val_metadata_path:
+    test_metadata_path: "../../data/coraa_ser_preloaded/pt-br_anotados.csv"
+    # test_metadata_path: "../../data/Multidataset-ser_preloaded/metadata/metadata_test.csv"
+    filename_column: "wav_file"
+    label_column: "emocao_conteudo"
+    # label_column: "label"
+
+    use_hot_one_encoding: true
+
+    use_mixup: false
+    mixup_alpha: 0.2
+
+    use_add_noise: false
+    min_amplitude: 0.01
+    max_amplitude: 0.15
+
+model:
+    input_size: 512
+    output_size: 7
+    dropout: 0.2
+    output_dims: [1024]
+
+training:
+    use_pre_trained_data: true
+    model_architecture: "mlp"
+    lr: 1e-3
+    scheduler_patience: 10
+    batch_size: 100
+    num_workers: 10
+    loss_func: "ce"
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val_loss"
+    dirpath: "../checkpoints/whisper_mlp_preloaded_multilingual-${data.use_mixup}_mixup$-${data.mixup_alpha}_mixup_alpha-${data.use_add_noise}_add_noise-${trainer.max_epochs}_epochs-${training.loss_func}_loss-${model.output_dims}_layers"
+
+early_stopping:
+    verbose: true
+    monitor: "val_loss"
+    patience: 200
+
+encoder_version: "openai/whisper-base"
+
+logger:
+    project_name: "whisper_classification_ser_multilingual"
+    debug: false

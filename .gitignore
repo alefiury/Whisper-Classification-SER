@@ -9,6 +9,7 @@ __pycache__/
 data/
 checkpoints/
 wandb/
+imgs/
 
 # Distribution / packaging
 .Python

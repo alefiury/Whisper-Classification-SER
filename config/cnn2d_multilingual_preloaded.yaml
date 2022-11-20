@@ -1,0 +1,71 @@
+trainer:
+    accelerator: "gpu"
+    max_epochs: 300
+    overfit_batches: 0.0
+    log_every_n_steps: 1
+    num_sanity_val_steps: 2
+
+data:
+    target_sampling_rate: 16000
+    use_preloaded_data: true
+    # base_dir_data: "../../data/coraa_ser_preloaded/audios"
+    base_dir_data: "../../data/Multidataset-ser_preloaded_2D"
+    train_metadata_path: "../../data/Multidataset-ser_preloaded/metadata/metadata_train.csv"
+    val_metadata_path:
+    # test_metadata_path: "../../data/coraa_ser_preloaded/pt-br_anotados.csv"
+    test_metadata_path: "../../data/Multidataset-ser_preloaded/metadata/metadata_test.csv"
+    filename_column: "wav_file"
+    # label_column: "emocao_conteudo"
+    label_column: "label"
+
+    use_hot_one_encoding: false
+
+    use_mixup: false
+    mixup_alpha: 0.2
+
+    use_add_noise: false
+    min_amplitude: 0.01
+    max_amplitude: 0.15
+
+model:
+    in_channels: 1
+    mlp_input: 2048 # 512 - mean, 7168 - flat
+    output_size: 8
+    dropout: 0.2
+    mlp_output_dims: [1024]
+    conv_layers: [
+        [64, 3, 1],
+        [128, 3, 1],
+        [256, 3, 1],
+        [512, 3, 1],
+        [1024, 3, 1],
+        [2048, 3, 1],
+    ]
+    global_pooling: "mean"
+
+training:
+    use_pre_trained_data: true
+    model_architecture: "cnn2d"
+    lr: 1e-3
+    scheduler_patience: 10
+    batch_size: 100
+    num_workers: 10
+    loss_func: "ce"
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val_loss"
+    dirpath: "../checkpoints/whisper_cnn2d_preloaded_multilingual-${data.use_mixup}_mixup$-${data.mixup_alpha}_mixup_alpha-${data.use_add_noise}_add_noise-${trainer.max_epochs}_epochs-${training.loss_func}_loss-${model.mlp_output_dims}_layers-${model.conv_layers}_conv_layers-${model.global_pooling}_pooling"
+
+early_stopping:
+    verbose: true
+    monitor: "val_loss"
+    patience: 200
+
+encoder_version: "openai/whisper-base"
+
+logger:
+    project_name: "whisper_classification_ser_multilingual"
+    debug: false

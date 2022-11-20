@@ -8,12 +8,12 @@ trainer:
 data:
     target_sampling_rate: 16000
     use_preloaded_data: true
-    base_dir_data: "../../data/Multidataset-ser"
+    base_dir_data: "../../data/coraa_ser/audios"
     train_metadata_path: "../../data/Multidataset-ser/metadata/metadata_train.csv"
     val_metadata_path:
-    test_metadata_path: "../../data/Multidataset-ser/metadata/metadata_test.csv"
-    filename_column: "wav_file"
-    label_column: "label"
+    test_metadata_path: "../../data/coraa_ser/pt-br_anotados.csv"
+    filename_column: "file"
+    label_column: "emocao_conteudo"
 
     use_mixup: false
     mixup_alpha: 0.2

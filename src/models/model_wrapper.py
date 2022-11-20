@@ -10,11 +10,17 @@ from torchmetrics.classification import (
     MulticlassRecall
 )
 
-from models.models import (
+from models.whisper_models import (
     MLPNetWhisper,
     CNN1DNetWhisper,
     CNN2DNetWhisper,
     WhisperForSpeechClassification
+)
+
+from models.basic_models import (
+    MLPNet,
+    CNN1DNet,
+    CNN2DNet
 )
 
 
@@ -26,14 +32,31 @@ class PlModelWrapper(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        if config.training.model_architecture == "mlp":
-            self.model = MLPNetWhisper(**config.model)
-        elif config.training.model_architecture == "cnn1d":
-            self.model = CNN1DNetWhisper(**config.model)
-        elif config.training.model_architecture == "cnn2d":
-            self.model = CNN2DNetWhisper(**config.model)
-        elif config.training.model_architecture == "finetune":
-            self.model = WhisperForSpeechClassification(**config.model)
+        if config.training.use_pre_trained_data:
+            if config.training.model_architecture == "mlp":
+                self.model = MLPNet(**config.model)
+            elif config.training.model_architecture == "cnn1d":
+                self.model = CNN1DNet(**config.model)
+            elif config.training.model_architecture == "cnn2d":
+                self.model = CNN2DNet(**config.model)
+            else:
+                raise Exception(
+                    "The model hasn't been defined! Your model must be one of these: ['mlp', 'cnn1d', 'cnn2d']"
+                )
+
+        else:
+            if config.training.model_architecture == "mlp":
+                self.model = MLPNetWhisper(**config.model)
+            elif config.training.model_architecture == "cnn1d":
+                self.model = CNN1DNetWhisper(**config.model)
+            elif config.training.model_architecture == "cnn2d":
+                self.model = CNN2DNetWhisper(**config.model)
+            elif config.training.model_architecture == "finetune":
+                self.model = WhisperForSpeechClassification(**config.model)
+            else:
+                raise Exception(
+                        "The model hasn't been defined! Your model must be one of these: ['mlp', 'cnn1d', 'cnn2d', 'finetune']"
+                    )
 
         self.config = config
 

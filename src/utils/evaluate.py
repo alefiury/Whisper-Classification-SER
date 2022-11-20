@@ -24,7 +24,7 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
 
         use_amp: True to use Mixed precision and False otherwise.
     """
-    print(config)
+    # print(config)
     mlp_net = PlModelWrapper(config=config).load_from_checkpoint(checkpoint_path)
     mlp_net.to(device)
 
@@ -48,8 +48,6 @@ def test_model(test_dataloader: Any, config: dict, checkpoint_path: str):
 
             if config.data.use_hot_one_encoding:
                 label = np.argmax(label, axis=1)
-
-            # print(label, pred)
 
             pred_list.extend(pred)
             labels.extend(label)

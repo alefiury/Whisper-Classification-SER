@@ -5,6 +5,7 @@ import torchaudio
 import pandas as pd
 from datasets import Dataset
 
+
 def audio_to_embeddings(
     batch,
     target_sampling_rate,
@@ -46,6 +47,45 @@ def audio_to_embeddings(
     batch["embedding"] = z
 
     return batch
+
+
+def audio_to_embeddings_save_torch_file(
+    file_path,
+    target_sampling_rate,
+    processor,
+    encoder,
+    mean_pooled,
+    base_dir
+):
+    waveform, source_sr = torchaudio.load(file_path)
+
+    # Convert to mono channel
+    waveform = torch.mean(waveform, dim=0, keepdim=True)
+    # Convert source sampling rate to a target sampling rate
+    if source_sr != target_sampling_rate:
+        transform = torchaudio.transforms.Resample(source_sr, target_sampling_rate)
+        waveform = transform(waveform)
+
+    waveform = waveform.squeeze(0)
+
+    inputs = processor(waveform, sampling_rate=target_sampling_rate, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = encoder(**inputs)
+
+    if mean_pooled:
+        # Saves the pooled representation, whisper shape: (512), wav2vec2 (xls-r 300m) shape: (1024)
+        z = torch.mean(outputs.last_hidden_state, dim=1).squeeze()
+
+    else:
+        # Saves the 2D representation, whisper shape: (1500, 512), wav2vec2 (xls-r 300m) shape: (t, 1024)
+        z = outputs.last_hidden_state.squeeze()
+
+    new_path = file_path.replace(base_dir, base_dir+"_preloaded_2D").replace(".wav", ".pt")
+
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+
+    torch.save(z, new_path)
 
 
 def prepare_data(

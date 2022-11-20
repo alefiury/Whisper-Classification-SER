@@ -31,6 +31,8 @@ def save_conf_matrix(
     plt.figure(figsize=(24,12))
     plot = sns.heatmap(df_cm, annot=True,  fmt='g')
     figure1 = plot.get_figure()
+    plot.set_ylabel('True Label')
+    plot.set_xlabel('Predicted Label')
     plt.tight_layout()
     figure1.savefig(output_path, format='png')
 
@@ -59,7 +61,7 @@ def load_preloaded_data(config):
 
     return preloaded_train_dataset, preloaded_val_dataset, preloaded_test_dataset
 
-def convert_labels(X_train, X_val, X_test, label_column):
+def convert_labels(df, label_column):
     emotion2int = {
         "neutral": 0,
         "happy": 1,
@@ -70,8 +72,43 @@ def convert_labels(X_train, X_val, X_test, label_column):
         "surprise": 6,
     }
 
-    X_train = X_train.replace({label_column: emotion2int})
-    X_val = X_val.replace({label_column: emotion2int})
-    X_test = X_test.replace({label_column: emotion2int})
+    df = df.replace({label_column: emotion2int})
 
-    return X_train, X_val, X_test
+    return df
+
+
+def convert_labels_coraa_ser(df, label_column):
+    emotion2int = {
+        "neutral": 0,
+        "happiness": 1,
+        "sadness": 2,
+        "anger": 3,
+        "fear": 4,
+        "disgust": 5,
+        "surprise": 6,
+    }
+
+    multiple_labels = {
+        "happiness/anger": "happiness",
+        "*neutral": "neutral",
+        "happiness/surprise": "happiness",
+        "sadness/happiness": "sadness",
+        "happiness/fear": "happiness",
+        "surprise/happiness": "surprise",
+        "happiness/sadness": "happiness",
+        "*anger": "anger"
+    }
+
+    df = df.replace({label_column: multiple_labels})
+    print(df[label_column].value_counts())
+    df = df.replace({label_column: emotion2int})
+    print(df[label_column].value_counts())
+
+    return df
+
+
+def convert_metadata_to_preloaded(df, file_path_column, sufix, base_dir):
+    df[file_path_column] = df[file_path_column].str.replace(base_dir, base_dir+f"_{sufix}")
+    df[file_path_column] = df[file_path_column].str.replace(".wav", ".pt")
+
+    return df

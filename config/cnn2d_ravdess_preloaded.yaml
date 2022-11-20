@@ -1,0 +1,62 @@
+trainer:
+    accelerator: "gpu"
+    max_epochs: 300
+    overfit_batches: 0.0
+    log_every_n_steps: 1
+    num_sanity_val_steps: 0
+
+data:
+    target_sampling_rate: 16000
+    use_preloaded_data: true
+    base_dir_data: ""
+    train_metadata_path: "../../data/ravdess_train_metadata.csv"
+    val_metadata_path: "../../data/ravdess_eval_metadata.csv"
+    test_metadata_path: "../../data/ravdess_test_metadata.csv"
+    filename_column: "wav_file"
+    label_column: "label"
+
+    use_hot_one_encoding: false
+
+model:
+    in_channels: 1
+    mlp_input: 2048 # 512 - mean, 7168 - flat
+    output_size: 8
+    dropout: 0.2
+    mlp_output_dims: [1024]
+    conv_layers: [
+        [64, 3, 1],
+        [128, 3, 1],
+        [256, 3, 1],
+        [512, 3, 1],
+        [1024, 3, 1],
+        [2048, 3, 1],
+    ]
+    global_pooling: "mean"
+
+
+training:
+    use_pre_trained_data: true
+    model_architecture: "cnn2d"
+    lr: 1e-3
+    scheduler_patience: 10
+    batch_size: 16
+    num_workers: 10
+    loss_func: "ce"
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val_loss"
+    dirpath: "../checkpoints/whisper_classification_ser_mlp_preloaded-${trainer.max_epochs}_epochs"
+
+early_stopping:
+    verbose: true
+    monitor: "val_loss"
+    patience: 200
+
+encoder_version: "openai/whisper-base"
+
+logger:
+    project_name: "whisper_classification_ser_mlp_preloaded"
+    debug: false

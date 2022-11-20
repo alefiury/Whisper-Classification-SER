@@ -1,5 +1,6 @@
 import os
 import argparse
+from collections import Counter
 
 import torch
 import numpy as np
@@ -13,9 +14,9 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_sc
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 
 from models.model_wrapper import PlModelWrapper
-from utils.dataloader import DataGeneratorForWhisper
+from utils.dataloader import DataGeneratorPreLoaded
 from utils.evaluate import test_model
-from utils.utils import convert_labels, save_conf_matrix, convert_labels_coraa_ser
+from utils.utils import convert_labels, save_conf_matrix, convert_labels_coraa_ser, convert_metadata_to_preloaded
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -83,57 +84,55 @@ def main():
         X_val = convert_labels(X_val, config.data.label_column)
         X_test = convert_labels(X_test, config.data.label_column)
 
-        processor = WhisperProcessor.from_pretrained(config.encoder_version)
+        # print(X_train[config.data.label_column].value_counts())
 
-        train_dataset = DataGeneratorForWhisper(
-            df=X_train,
-            processor=processor,
+        # X_train = convert_metadata_to_preloaded(X_train, config.data.filename_column, "whisper", "ravdess")
+        # X_val = convert_metadata_to_preloaded(X_val, config.data.filename_column, "whisper", "ravdess")
+        # X_test = convert_metadata_to_preloaded(X_test, config.data.filename_column, "whisper", "ravdess")
+
+        train_dataset = DataGeneratorPreLoaded(
+            dataset=X_train,
             label_column=config.data.label_column,
-            base_wav_path=config.data.base_dir_data,
             filename_column=config.data.filename_column,
-            target_sampling_rate=config.data.target_sampling_rate,
+            base_dir=config.data.base_dir_data,
             use_mixup=config.data.use_mixup,
             mixup_alpha=config.data.mixup_alpha,
-            use_specaug=config.data.use_specaug,
-            specaug_freqm=config.data.specaug_freqm,
-            specaug_timem=config.data.specaug_timem,
-            class_num=config.model.output_size,
             data_type="train",
-            use_hot_one_encoding=config.data.use_hot_one_encoding
+            use_hot_one_encoding=config.data.use_hot_one_encoding,
+            use_add_noise=config.data.use_add_noise,
+            min_amplitude=config.data.min_amplitude,
+            max_amplitude=config.data.max_amplitude,
+            class_num=config.model.output_size
         )
 
-        val_dataset = DataGeneratorForWhisper(
-            df=X_val,
-            target_sampling_rate=config.data.target_sampling_rate,
-            base_wav_path=config.data.base_dir_data,
-            processor=processor,
-            filename_column=config.data.filename_column,
+        val_dataset = DataGeneratorPreLoaded(
+            dataset=X_val,
             label_column=config.data.label_column,
+            filename_column=config.data.filename_column,
+            base_dir=config.data.base_dir_data,
             use_mixup=False,
-            mixup_alpha=0.0,
-            use_specaug=False,
-            specaug_freqm=0.0,
-            specaug_timem=0.0,
-            class_num=config.model.output_size,
+            mixup_alpha=None,
             data_type="val",
-            use_hot_one_encoding=config.data.use_hot_one_encoding
+            use_hot_one_encoding=config.data.use_hot_one_encoding,
+            use_add_noise=False,
+            min_amplitude=None,
+            max_amplitude=None,
+            class_num=config.model.output_size
         )
 
-        test_dataset = DataGeneratorForWhisper(
-            df=X_test,
-            target_sampling_rate=config.data.target_sampling_rate,
-            base_wav_path=config.data.base_dir_data,
-            processor=processor,
-            filename_column=config.data.filename_column,
+        test_dataset = DataGeneratorPreLoaded(
+            dataset=X_test,
             label_column=config.data.label_column,
+            filename_column=config.data.filename_column,
+            base_dir=config.data.base_dir_data,
             use_mixup=False,
-            mixup_alpha=0.0,
-            use_specaug=False,
-            specaug_freqm=0.0,
-            specaug_timem=0.0,
-            class_num=config.model.output_size,
+            mixup_alpha=None,
             data_type="test",
-            use_hot_one_encoding=config.data.use_hot_one_encoding
+            use_hot_one_encoding=config.data.use_hot_one_encoding,
+            use_add_noise=False,
+            min_amplitude=None,
+            max_amplitude=None,
+            class_num=config.model.output_size
         )
 
         train_loader = torch.utils.data.DataLoader(
@@ -173,9 +172,18 @@ def main():
         )
         trainer.fit(pl_model, train_loader, val_loader)
         trainer.test(pl_model, dataloaders=test_loader, ckpt_path="best", verbose=True)
-        # print(f"Best Checkpoint: {checkpoint_callback.best_model_path}")
 
     elif args.test:
+        classes=[
+            "neutral",
+            "happiness",
+            "sadness",
+            "anger",
+            "fear",
+            "disgust",
+            "surprise"
+        ]
+
         # classes=[
         #     "neutral",
         #     "calm",
@@ -187,36 +195,59 @@ def main():
         #     "surprised"
         # ]
 
-        classes = [
-            "neutral",
-            "happy",
-            "sad",
-            "angry",
-            "fear",
-            "disgust",
-            "surprise",
-        ]
+        # english, emovo
+        # classes = [
+        #     "neutral",
+        #     "happy",
+        #     "sad",
+        #     "angry",
+        #     "fear",
+        #     "disgust",
+        #     "surprise",
+        # ]
+
+        # # aesdd
+        # classes = [
+        #     "sad",
+        #     "disgust"
+        # ]
+
+        # emodb
+        # classes = [
+        #     "neutral",
+        #     "happy",
+        #     "sad",
+        #     "angry",
+        #     "fear",
+        #     "disgust"
+        # ]
+
+        # urdu
+        # classes = [
+        #     "neutral",
+        #     "happy",
+        #     "sad",
+        #     "angry"
+        # ]
 
         X_test = pd.read_csv(config.data.test_metadata_path)
         # X_test = convert_labels(X_test, config.data.label_column)
         X_test = convert_labels_coraa_ser(X_test, config.data.label_column)
-        processor = WhisperProcessor.from_pretrained(config.encoder_version)
+        # processor = WhisperProcessor.from_pretrained(config.encoder_version)
 
-        test_dataset = DataGeneratorForWhisper(
-            df=X_test,
-            target_sampling_rate=config.data.target_sampling_rate,
-            base_wav_path=config.data.base_dir_data,
-            processor=processor,
-            filename_column=config.data.filename_column,
+        test_dataset = DataGeneratorPreLoaded(
+            dataset=X_test,
             label_column=config.data.label_column,
+            filename_column=config.data.filename_column,
+            base_dir=config.data.base_dir_data,
             use_mixup=False,
-            mixup_alpha=0.0,
-            use_specaug=False,
-            specaug_freqm=0.0,
-            specaug_timem=0.0,
-            class_num=config.model.output_size,
+            mixup_alpha=None,
             data_type="test",
-            use_hot_one_encoding=config.data.use_hot_one_encoding
+            use_hot_one_encoding=config.data.use_hot_one_encoding,
+            use_add_noise=False,
+            min_amplitude=None,
+            max_amplitude=None,
+            class_num=config.model.output_size
         )
 
         test_loader = torch.utils.data.DataLoader(
@@ -230,16 +261,17 @@ def main():
         labels, pred_list = test_model(
             test_dataloader=test_loader,
             config=config,
-            checkpoint_path="../checkpoints/whisper_classification_ser_mlp_multilingual-False_mixup-False_spec_aug-30_epochs/epoch=29-step=5580.ckpt"
+            checkpoint_path="../checkpoints/whisper_cnn1d_preloaded_multilingual-True_mixup$-0.2_mixup_alpha-True_add_noise-300_epochs-bce_loss-[1024]_layers-[[32, 3, 1], [64, 1, 1]]_conv_layers-flat_pooling/epoch=287-step=53568.ckpt"
         )
 
         print(labels, pred_list)
+        print(f"labels: {Counter(labels)} | pred: {Counter(pred_list)}")
 
         save_conf_matrix(
             targets=labels,
             preds=pred_list,
             classes=classes,
-            output_path="wav2vec2_multilingual_conf_mlp_coraa_ser.png"
+            output_path="../imgs/whisper_cnn1d_preloaded_multilingual-True_mixup$-0.2_mixup_alpha-True_add_noise-300_epochs-bce_loss-[1024]_layers-[[32, 3, 1], [64, 1, 1]]_conv_layers-flat_pooling_coraa.png"
         )
 
         rand_baseline = np.random.randint(8, size=len(labels))
@@ -253,5 +285,4 @@ def main():
         print(f"Recall: {recall_score(labels, pred_list, average='macro')}")
 
 if __name__ == "__main__":
-    # torch.multiprocessing.set_start_method('spawn')
     main()
